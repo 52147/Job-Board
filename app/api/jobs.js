@@ -14,7 +14,7 @@ export async function GET(request) {
 
     // auth setup
     const auth = new google.auth.GoogleAuth({
-      credentials: serviceAccount,
+      credentials: JSON.parse(process.env.KEY_JSON),
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     })
     const client = await auth.getClient()
