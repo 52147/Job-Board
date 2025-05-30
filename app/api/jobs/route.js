@@ -7,13 +7,13 @@ export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    const keyPath = path.join(process.cwd(), 'sa-key.json')
-    if (!fs.existsSync(keyPath)) throw new Error('sa-key.json not found')
-
-    const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'))
+    // Load your service account key from the environment variable
+    if (!process.env.KEY_JSON) {
+      throw new Error('Missing KEY_JSON env var')
+    }   
 
     const auth = new google.auth.GoogleAuth({
-      credentials: serviceAccount,
+      credentials: JSON.parse(process.env.KEY_JSON),
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     })
 
