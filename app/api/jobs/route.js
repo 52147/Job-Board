@@ -1,68 +1,54 @@
-// app/api/jobs/route.js
-import { NextResponse } from "next/server";
-import { google } from "googleapis";
-import fs from "fs";
-import path from "path";
+// 文件路径：app/api/jobs/route.js
 
-export const runtime = "nodejs";
+import { NextResponse } from 'next/server';
+import { google } from 'googleapis';
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    // 1. 确保环境变量里有 SERVICE_ACCOUNT_KEY_PATH
-    if (!process.env.SERVICE_ACCOUNT_KEY_PATH) {
-      throw new Error("Missing SERVICE_ACCOUNT_KEY_PATH env var");
+    // 1. 检查环境变量
+    // if (!process.env.KEY_JSON) {
+    //   throw new Error('Missing KEY_JSON env var');
+    // }
+    if (!process.env.SHEET_ID) {
+      throw new Error('Missing SHEET_ID env var');
     }
 
-    // 2. 根据路径加载私钥文件内容
-    const keyFilePath = process.env.SERVICE_ACCOUNT_KEY_PATH;
-    // 这里把相对路径转成绝对路径，以防读不到
-    const fullPath = path.isAbsolute(keyFilePath)
-      ? keyFilePath
-      : path.join(process.cwd(), keyFilePath);
+    // 2. 把 KEY_JSON（大段字符串）里所有的 \\n 转回真正的换行符
+    //    然后 JSON.parse 成一个对象
+    const serviceAccount = JSON.parse(
+        Buffer.from(process.env.KEY_JSON_BASE64, "base64").toString("utf-8")
+      );
 
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`Service account key file not found at ${fullPath}`);
-    }
-
-    // 3. 读文件并 parse
-    const fileContents = fs.readFileSync(fullPath, "utf8");
-    let serviceAccount;
-    try {
-      serviceAccount = JSON.parse(fileContents);
-    } catch (e) {
-      throw new Error("Failed to JSON.parse the contents of SERVICE_ACCOUNT_KEY_PATH");
-    }
-
-    // 4. 用 GoogleAuth 初始化
+    // 3. 用 GoogleAuth 把这个对象当作凭证传入
     const auth = new google.auth.GoogleAuth({
       credentials: serviceAccount,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
+
     const client = await auth.getClient();
-    const sheets = google.sheets({ version: "v4", auth: client });
-
-    // 5. 确保 SHEET_ID
+    const sheets = google.sheets({ version: 'v4', auth: client });
     const spreadsheetId = process.env.SHEET_ID;
-    if (!spreadsheetId) {
-      throw new Error("Missing SHEET_ID env var");
-    }
 
-    // 6. 去拉取表格内容
+    // 4. 从 Google Sheets 读数据
     const resp = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Sheet1",
+      range: 'Sheet1',
     });
+
     const rows = resp.data.values || [];
     if (rows.length < 2) {
+      // 只有标题，或者空表
       return NextResponse.json({ jobs: [] });
     }
 
-    // 7. 解析成对象数组
+    // 5. 第一行当作表头，其余行作为记录
     const [headers, ...data] = rows;
     const jobs = data.map((row) => {
       const obj = {};
       headers.forEach((h, i) => {
-        obj[h.trim().toLowerCase()] = row[i] || "";
+        obj[h.trim().toLowerCase()] = row[i] || '';
       });
       return {
         title: obj.title,
@@ -72,17 +58,15 @@ export async function GET() {
       };
     });
 
-    // 8. 返回结果并加上缓存头
-    const response = NextResponse.json({ jobs });
-    response.headers.set(
-      "Cache-Control",
-      "s-maxage=60, stale-while-revalidate=300"
-    );
-    return response;
+    // 6. 返回 JSON，顺便加上 CDN 缓存头（可选）
+    const jsonRes = NextResponse.json({ jobs });
+    jsonRes.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+    return jsonRes;
+
   } catch (err) {
-    console.error("🔥 /api/jobs error:", err);
+    console.error('🔥 /api/jobs error:', err);
     return NextResponse.json(
-      { error: err.message || "unknown error" },
+      { error: err.message || 'unknown error' },
       { status: 500 }
     );
   }
