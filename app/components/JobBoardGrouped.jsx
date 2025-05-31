@@ -160,13 +160,9 @@ export default function JobBoardGrouped() {
             className="w-[200px] px-4 py-2 border rounded-xl shadow-sm text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Locations</option>
-            {[
-              ...new Set(
-                jobs.flatMap((j) => j.skills.split(",").map((s) => s.trim()))
-              ),
-            ].map((skill) => (
-              <option key={skill} value={skill}>
-                {skill}
+            {[...new Set(jobs.map((j) => j.location))].map((loc) => (
+              <option key={loc} value={loc}>
+                {loc}
               </option>
             ))}
           </select>
