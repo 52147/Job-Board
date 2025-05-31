@@ -214,7 +214,7 @@ export default function JobBoardGrouped() {
           <p className="text-gray-600">No jobs found.</p>
         ) : (
           Object.entries(grouped).map(([loc, list]) => (
-            <div key={loc} className="sm:mb-8 h-[300px] overflow-y-auto pb-4">
+            <div key={loc} className="mb-12 sm:mb-8 h-[300px] overflow-y-auto pb-4">
               <h2 className="text-xl font-semibold text-blue-700 mb-2 border-b pb-1">
                 {loc}
               </h2>
