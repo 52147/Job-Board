@@ -86,8 +86,8 @@ const groupByLocation = (jobs) =>
   }, {});
 
 export default function JobBoardGrouped() {
-    const [jobs, setJobs]     = useState([]);
-    const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({
     location: "",
@@ -107,17 +107,21 @@ export default function JobBoardGrouped() {
       !filters.location || job.location === filters.location;
     const matchExperience =
       !filters.experience || job.experience === filters.experience;
-    const matchSkills = !filters.skills || job.skills === filters.skills;
+    const matchSkills =
+      !filters.skills ||
+      job.skills
+        .split(",")
+        .map((s) => s.trim())
+        .includes(filters.skills);
     return matchQuery && matchLocation && matchExperience && matchSkills;
   };
 
   const grouped = groupByLocation(jobs.filter(handleSearch));
 
-
   useEffect(() => {
-    fetch('/api/jobs')
-      .then(r => r.json())
-      .then(data => setJobs(data.jobs || []))
+    fetch("/api/jobs")
+      .then((r) => r.json())
+      .then((data) => setJobs(data.jobs || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -127,7 +131,7 @@ export default function JobBoardGrouped() {
   }
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4 text-black">Job Board</h1>
+      <h1 className="text-3xl font-bold mb-4 text-black">Job Board</h1>
 
       <div className="flex flex-nowrap gap-2 mb-6 items-center">
         <div className="flex flex-col  gap-2 mb-6 sm:flex-row">
@@ -156,9 +160,13 @@ export default function JobBoardGrouped() {
             className="w-[200px] px-4 py-2 border rounded-xl shadow-sm text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Locations</option>
-            {[...new Set(jobs.map((j) => j.location))].map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
+            {[
+              ...new Set(
+                jobs.flatMap((j) => j.skills.split(",").map((s) => s.trim()))
+              ),
+            ].map((skill) => (
+              <option key={skill} value={skill}>
+                {skill}
               </option>
             ))}
           </select>
@@ -186,7 +194,11 @@ export default function JobBoardGrouped() {
             className="w-[200px] px-4 py-2 border rounded-xl shadow-sm text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Skills</option>
-            {[...new Set(jobs.map((j) => j.skills))].map((skill) => (
+            {[
+              ...new Set(
+                jobs.flatMap((j) => j.skills.split(",").map((s) => s.trim()))
+              ),
+            ].map((skill) => (
               <option key={skill} value={skill}>
                 {skill}
               </option>
